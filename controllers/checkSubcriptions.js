@@ -1,4 +1,4 @@
-require("dotenv").config();
+// require("dotenv").config();
 // const cron = require("node-cron");
 const User = require("../models/User");
 const express = require("express");
