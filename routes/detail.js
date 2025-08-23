@@ -153,24 +153,120 @@ The JSON must include these keys:
   }
 });
 
-// PUT: "/api/detail/admin/editdetail/:userId" - Admin only
-router.put("/editdetail/:userId", fetchuser, isAdmin, async (req, res) => {
+// ------------------- DailyMeals CRUD -------------------
+
+// 1️⃣ GET all dailyMeals
+router.get("/dailyMeals", fetchuser, async (req, res) => {
   try {
-    const { mealFitness } = req.body;
+    const detail = await Detail.findOne({ user: req.user.id });
+    if (!detail) return res.status(404).json({ error: "No details found" });
 
-    const targetUserId = req.params.userId;
+    res.json(detail.dailyMeals);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
-    // Check if a detail document already exists for this user
-    let existingDetail = await Detail.findOne({ user: targetUserId });
+// 2️⃣ POST - Add meal to dailyMeals (auto-merge if same date exists)
+router.post("/dailyMeals", fetchuser, async (req, res) => {
+  try {
+    const { date, meals } = req.body;
 
-    // Create new if not exists
-    if (!existingDetail) {
-      existingDetail = new Detail({ user: targetUserId });
+    // normalize date (ignore time part)
+    const mealDate = new Date(date).toISOString().split("T")[0];
+
+    let detail = await Detail.findOne({ user: req.user.id });
+    if (!detail) detail = new Detail({ user: req.user.id });
+
+    // Check if dailyMeal already exists for that date
+    let dailyMeal = detail.dailyMeals.find(
+      (dm) => dm.date.toISOString().split("T")[0] === mealDate
+    );
+
+    if (dailyMeal) {
+      // Append new meals into existing meals[]
+      dailyMeal.meals.push(...meals);
+
+      // ✅ Recalculate totals only from completed meals
+      dailyMeal.totals = dailyMeal.meals
+        .filter((m) => m.status === "completed")
+        .reduce(
+          (acc, m) => {
+            acc.calories += m.calories || 0;
+            acc.protein += m.protein || 0;
+            acc.fats += m.fats || 0;
+            acc.carbs += m.carbs || 0;
+            return acc;
+          },
+          { calories: 0, protein: 0, fats: 0, carbs: 0 }
+        );
+    } else {
+      // Calculate totals only for completed meals
+      const totals = meals
+        .filter((m) => m.status === "completed")
+        .reduce(
+          (acc, m) => {
+            acc.calories += m.calories || 0;
+            acc.protein += m.protein || 0;
+            acc.fats += m.fats || 0;
+            acc.carbs += m.carbs || 0;
+            return acc;
+          },
+          { calories: 0, protein: 0, fats: 0, carbs: 0 }
+        );
+
+      detail.dailyMeals.push({
+        date: new Date(date),
+        meals,
+        totals,
+      });
     }
 
-    existingDetail.mealFitness = mealFitness;
-    const savedDetail = await existingDetail.save();
-    res.json({ success: true, detail: savedDetail });
+    await detail.save();
+    res.json(detail.dailyMeals);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// 3️⃣ PUT - Update a dailyMeal by ID
+router.put("/dailyMeals/:id", fetchuser, async (req, res) => {
+  try {
+    const { date, meals, totals } = req.body;
+
+    const detail = await Detail.findOne({ user: req.user.id });
+    if (!detail) return res.status(404).json({ error: "No details found" });
+
+    const dailyMeal = detail.dailyMeals.id(req.params.id);
+    if (!dailyMeal) return res.status(404).json({ error: "DailyMeal not found" });
+
+    if (date) dailyMeal.date = date;
+    if (meals) dailyMeal.meals = meals;
+    if (totals) dailyMeal.totals = totals;
+
+    await detail.save();
+    res.json(dailyMeal);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// 4️⃣ DELETE - Remove a dailyMeal by ID
+router.delete("/dailyMeals/:id", fetchuser, async (req, res) => {
+  try {
+    const detail = await Detail.findOne({ user: req.user.id });
+    if (!detail) return res.status(404).json({ error: "No details found" });
+
+    const dailyMeal = detail.dailyMeals.id(req.params.id);
+    if (!dailyMeal) return res.status(404).json({ error: "DailyMeal not found" });
+
+    dailyMeal.remove();
+    await detail.save();
+
+    res.json({ success: true, msg: "DailyMeal deleted" });
   } catch (error) {
     console.error(error.message);
     res.status(500).send("Internal Server Error");
