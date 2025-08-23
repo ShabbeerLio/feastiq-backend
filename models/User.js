@@ -158,6 +158,9 @@ const UserSchema = new Schema({
   height: {
     type: String,
   },
+  goal: {
+    type: String,
+  },
   foodpreferences: {
     type: String,
   },

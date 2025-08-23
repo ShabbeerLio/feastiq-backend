@@ -55,6 +55,7 @@ router.post(
     body("gender", "Enter your gender"),
     body("weight", "Enter your weight"),
     body("height", "Enter your height"),
+    body("goal", "Enter your goal"),
     body("foodpreferences", "Enter your food preferences"),
   ],
   async (req, res) => {
@@ -86,6 +87,7 @@ router.post(
         gender: req.body.gender,
         weight: req.body.weight,
         height: req.body.height,
+        goal: req.body.goal,
         foodpreferences: req.body.foodpreferences,
       });
 
@@ -181,6 +183,7 @@ router.put(
     body("gender", "Enter your gender").optional(),
     body("weight", "Enter your birth weight").optional(),
     body("height", "Enter your birth height").optional(),
+    body("goal", "Enter your birth goal").optional(),
     body("foodpreferences", "Enter your foodpreferences").optional(),
   ],
   async (req, res) => {
@@ -197,6 +200,7 @@ router.put(
       gender,
       weight,
       height,
+      goal,
       foodpreferences
     } = req.body;
     const updatedFields = {};
@@ -208,6 +212,7 @@ router.put(
     if (gender) updatedFields.gender = gender;
     if (weight) updatedFields.weight = weight;
     if (height) updatedFields.height = height;
+    if (goal) updatedFields.goal = goal;
     if (foodpreferences) updatedFields.foodpreferences = foodpreferences;
 
     if (password) {
@@ -253,6 +258,7 @@ router.put(
     body("gender", "Enter your gender").optional(),
     body("weight", "Enter your weight").optional(),
     body("height", "Enter your height").optional(),
+    body("goal", "Enter your goal").optional(),
     body("foodpreferences", "Enter your foodpreferences").optional(),
     body("role", "Role must be a string").optional().isString(), // Optional: allow admin to change role
   ],
@@ -270,6 +276,7 @@ router.put(
       gender,
       weight,
       height,
+      goal,
       foodpreferences,
       role,
     } = req.body;
@@ -281,6 +288,7 @@ router.put(
     if (gender) updatedFields.gender = gender;
     if (weight) updatedFields.weight = weight;
     if (height) updatedFields.height = height;
+    if (goal) updatedFields.goal = goal;
     if (foodpreferences) updatedFields.foodpreferences = foodpreferences;
     if (role) updatedFields.role = role;
 
