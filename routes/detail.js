@@ -67,7 +67,8 @@ router.get("/fetchfeast", fetchuser, async (req, res) => {
 // route2 : Add new category using POST: "/api/detail/adddetail" login required
 router.post("/addfeast", fetchuser, async (req, res) => {
   try {
-    const { age, weight, height, gender, goal, dailyFoods } = req.body;
+    const { age, weight, height, gender, goal, foodpreferences } = req.body;
+    console.log(age, weight, height, gender, goal, foodpreferences,"items")
     const prompt = `
 You are a certified fitness and nutrition coach. Create a personalized fitness and nutrition plan for the following person:
 
@@ -76,7 +77,7 @@ Gender: ${gender}
 Weight: ${weight} kg
 Height: ${height} cm
 Goal: ${goal}
-Daily Food Intake: ${dailyFoods}
+Daily Food Intake: ${foodpreferences}
 
 Your response must be a SINGLE JSON object only (no extra text or markdown).  
 
