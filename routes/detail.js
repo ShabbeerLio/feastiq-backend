@@ -87,6 +87,7 @@ Your response must be a SINGLE JSON object only (no extra text or markdown).
 - Every meal must include: time, meal name, calories, protein, carbs, fats, and recipes (with title, ingredients including macros, and steps).  
 - Every workout day must include at least 3 exercises (with calories, protein, carbs, fats).  
 - The JSON must be valid and properly formatted.  
+- **The calorie breakdown must be calculated correctly, and the sum of calories for breakfast, lunch, dinner, and snacks for each day MUST add up to the total daily calorie target.**
 
 The JSON must include these keys:  
 
