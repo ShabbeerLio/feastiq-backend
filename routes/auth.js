@@ -177,9 +177,6 @@ router.put(
   [
     body("name", "Enter a valid name").optional().isLength({ min: 3 }),
     body("email", "Enter a valid email").optional().isEmail(),
-    body("password", "Password must be at least 5 characters")
-      .optional()
-      .isLength({ min: 5 }),
     body("age", "Enter your age").optional(),
     body("gender", "Enter your gender").optional(),
     body("weight", "Enter your birth weight").optional(),
@@ -196,7 +193,6 @@ router.put(
     const {
       name,
       email,
-      password,
       age,
       gender,
       weight,
@@ -215,11 +211,6 @@ router.put(
     if (height) updatedFields.height = height;
     if (goal) updatedFields.goal = goal;
     if (foodpreferences) updatedFields.foodpreferences = foodpreferences;
-
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      updatedFields.password = await bcrypt.hash(password, salt);
-    }
 
     try {
       // Find user and update their data
