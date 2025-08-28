@@ -40,8 +40,8 @@ router.get(
   passport.authenticate("google", { session: false }),
   (req, res) => {
     const token = jwt.sign({ user: { id: req.user._id } }, JWT_SECRET);
-    res.redirect(`http://localhost:3000/login/?token=${token}`); // redirect to frontend with token
-    // res.redirect(`https://feastiq.netlify.app/login/?token=${token}`); // redirect to frontend with token
+    // res.redirect(`http://localhost:3000/login/?token=${token}`); // redirect to frontend with token
+    res.redirect(`https://feastiq.netlify.app/login/?token=${token}`); // redirect to frontend with token
   }
 );
 
