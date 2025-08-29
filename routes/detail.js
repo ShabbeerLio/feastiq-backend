@@ -65,97 +65,15 @@ router.get("/fetchfeast", fetchuser, async (req, res) => {
   }
 });
 
-router.post("/addfeast", fetchuser, async (req, res) => {
-  const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY, // set in .env
-  });
-
-  try {
-    const { age, weight, height, gender, goal, foodpreferences } = req.body;
-    console.log(age, weight, height, gender, goal, foodpreferences, "items");
-
-    const prompt = `
-You are a certified fitness and nutrition coach. Create a personalized fitness and nutrition plan for the following person:
-
-Age: ${age}
-Gender: ${gender}
-Weight: ${weight} kg
-Height: ${height} cm
-Goal: ${goal}
-Daily Food Intake: ${foodpreferences}
-
-Your response must be a SINGLE JSON object only (no extra text or markdown).  
-
-⚠️ IMPORTANT RULES:  
-- All 7 days (Monday → Sunday) must be completely filled with unique meals and workouts.  
-- Do not leave ANY object or array empty.  
-- Every meal must include: time, meal name, calories, protein, carbs, fats, and recipes (with title, ingredients including macros, and steps).  
-- **The calorie breakdown must be calculated correctly, and the sum of calories for breakfast, lunch, dinner, and snacks for each day MUST add up to the total daily calorie target.**
-- Every workout day must include at least 3 exercises (with calories, protein, carbs, fats).  
-- The JSON must be valid and properly formatted.  
-
-The JSON must include these keys:  
-
-1. calorieBreakdown — object with keys: calories, protein, carbs, fats.  
-
-2. mealPlan — array of 7 objects (one per day). Each day object must have:  
-   - day (string)  
-   - breakfast, lunch, dinner, snacks — each is an object with:  
-     - time (string)  
-     - meal (string)  
-     - calories (number)  
-     - protein (number)  
-     - carbs (number)  
-     - fats (number)  
-     - recipes (array of objects, each with:  
-       - title (string)  
-       - ingredients (array of strings, each showing food + macros like “1 cup oats (300 kcal, 10g protein, 55g carbs, 6g fat)”)  
-       - steps (array of strings))  
-
-3. workoutPlan — array of 7 objects, each with:  
-   - day (string)  
-   - exercises (array of objects, each with:  
-     - name (string)  
-     - calories (number) 
-
-4. motivationalTip — string  
-
-5. importantConsiderations — array of strings  
-`;
-
-    // Call OpenAI API
-    const response = await client.chat.completions.create({
-      model: "gpt-4o-mini", // or "gpt-4o" for higher quality
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" }, // forces valid JSON
-    });
-
-    const planText = response.choices[0].message.content;
-
-    // Check if a detail document already exists for this user
-    let existingDetail = await Detail.findOne({ user: req.user.id });
-
-    if (!existingDetail) {
-      existingDetail = new Detail({ user: req.user.id });
-    }
-
-    existingDetail.mealFitness = planText;
-    const savedDetail = await existingDetail.save();
-
-    res.json(savedDetail);
-  } catch (error) {
-    console.error("Error in /addfeast:", error.message);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-// gemini API key
-
-// // route2 : Add new category using POST: "/api/detail/adddetail" login required
 // router.post("/addfeast", fetchuser, async (req, res) => {
+//   const client = new OpenAI({
+//     apiKey: process.env.OPENAI_API_KEY, // set in .env
+//   });
+
 //   try {
 //     const { age, weight, height, gender, goal, foodpreferences } = req.body;
-//     console.log(age, weight, height, gender, goal, foodpreferences,"items")
+//     console.log(age, weight, height, gender, goal, foodpreferences, "items");
+
 //     const prompt = `
 // You are a certified fitness and nutrition coach. Create a personalized fitness and nutrition plan for the following person:
 
@@ -166,81 +84,163 @@ The JSON must include these keys:
 // Goal: ${goal}
 // Daily Food Intake: ${foodpreferences}
 
-// Your response must be a SINGLE JSON object only (no extra text or markdown).
+// Your response must be a SINGLE JSON object only (no extra text or markdown).  
 
-// ⚠️ IMPORTANT RULES:
-// - All 7 days (Monday → Sunday) must be completely filled with unique meals and workouts.
-// - Do not leave ANY object or array empty.
-// - Every meal must include: time, meal name, calories, protein, carbs, fats, and recipes (with title, ingredients including macros, and steps).
+// ⚠️ IMPORTANT RULES:  
+// - All 7 days (Monday → Sunday) must be completely filled with unique meals and workouts.  
+// - Do not leave ANY object or array empty.  
+// - Every meal must include: time, meal name, calories, protein, carbs, fats, and recipes (with title, ingredients including macros, and steps).  
 // - **The calorie breakdown must be calculated correctly, and the sum of calories for breakfast, lunch, dinner, and snacks for each day MUST add up to the total daily calorie target.**
-// - Every workout day must include at least 3 exercises (with calories, protein, carbs, fats).
-// - The JSON must be valid and properly formatted.
+// - Every workout day must include at least 3 exercises (with calories, protein, carbs, fats).  
+// - The JSON must be valid and properly formatted.  
 
-// The JSON must include these keys:
+// The JSON must include these keys:  
 
-// 1. calorieBreakdown — object with keys: calories, protein, carbs, fats.
+// 1. calorieBreakdown — object with keys: calories, protein, carbs, fats.  
 
-// 2. mealPlan — array of 7 objects (one per day). Each day object must have:
-//    - day (string)
-//    - breakfast, lunch, dinner, snacks — each is an object with:
-//      - time (string)
-//      - meal (string)
-//      - calories (number)
-//      - protein (number)
-//      - carbs (number)
-//      - fats (number)
-//      - recipes (array of objects, each with:
-//        - title (string)
-//        - ingredients (array of strings, each showing food + macros like “1 cup oats (300 kcal, 10g protein, 55g carbs, 6g fat)”)
-//        - steps (array of strings))
+// 2. mealPlan — array of 7 objects (one per day). Each day object must have:  
+//    - day (string)  
+//    - breakfast, lunch, dinner, snacks — each is an object with:  
+//      - time (string)  
+//      - meal (string)  
+//      - calories (number)  
+//      - protein (number)  
+//      - carbs (number)  
+//      - fats (number)  
+//      - recipes (array of objects, each with:  
+//        - title (string)  
+//        - ingredients (array of strings, each showing food + macros like “1 cup oats (300 kcal, 10g protein, 55g carbs, 6g fat)”)  
+//        - steps (array of strings))  
 
-// 3. workoutPlan — array of 7 objects, each with:
-//    - day (string)
-//    - exercises (array of objects, each with:
-//      - name (string)
-//      - calories (number)
+// 3. workoutPlan — array of 7 objects, each with:  
+//    - day (string)  
+//    - exercises (array of objects, each with:  
+//      - name (string)  
+//      - calories (number) 
 
-// 4. motivationalTip — string
+// 4. motivationalTip — string  
 
-// 5. importantConsiderations — array of strings
+// 5. importantConsiderations — array of strings  
 // `;
 
-//     // Call Gemini API
-//     const geminiRes = await fetch(
-//       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
-//       {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           contents: [{ parts: [{ text: prompt }] }],
-//         }),
-//       }
-//     );
+//     // Call OpenAI API
+//     const response = await client.chat.completions.create({
+//       model: "gpt-4o-mini", // or "gpt-4o" for higher quality
+//       messages: [{ role: "user", content: prompt }],
+//       response_format: { type: "json_object" }, // forces valid JSON
+//     });
 
-//     const geminiData = await geminiRes.json();
-
-//     if (!geminiData?.candidates?.[0]?.content?.parts?.[0]?.text) {
-//       return res
-//         .status(500)
-//         .json({ error: "Gemini API failed to return a plan" });
-//     }
-
-//     const planText = geminiData.candidates[0].content.parts[0].text;
+//     const planText = response.choices[0].message.content;
 
 //     // Check if a detail document already exists for this user
 //     let existingDetail = await Detail.findOne({ user: req.user.id });
-//     // Create new if not exists
+
 //     if (!existingDetail) {
 //       existingDetail = new Detail({ user: req.user.id });
 //     }
+
 //     existingDetail.mealFitness = planText;
 //     const savedDetail = await existingDetail.save();
+
 //     res.json(savedDetail);
 //   } catch (error) {
-//     console.error(error.message);
+//     console.error("Error in /addfeast:", error.message);
 //     res.status(500).send("Internal Server Error");
 //   }
 // });
+
+// gemini API key
+
+// route2 : Add new category using POST: "/api/detail/adddetail" login required
+router.post("/addfeast", fetchuser, async (req, res) => {
+  try {
+    const { age, weight, height, gender, goal, foodpreferences } = req.body;
+    console.log(age, weight, height, gender, goal, foodpreferences,"items")
+    const prompt = `
+You are a certified fitness and nutrition coach. Create a personalized fitness and nutrition plan for the following person:
+
+Age: ${age}
+Gender: ${gender}
+Weight: ${weight} kg
+Height: ${height} cm
+Goal: ${goal}
+Daily Food Intake: ${foodpreferences}
+
+Your response must be a SINGLE JSON object only (no extra text or markdown).
+
+⚠️ IMPORTANT RULES:
+- All 7 days (Monday → Sunday) must be completely filled with unique meals and workouts.
+- Do not leave ANY object or array empty.
+- Every meal must include: time, meal name, calories, protein, carbs, fats, and recipes (with title, ingredients including macros, and steps).
+- **The calorie breakdown must be calculated correctly, and the sum of calories for breakfast, lunch, dinner, and snacks for each day MUST add up to the total daily calorie target.**
+- Every workout day must include at least 3 exercises (with calories, protein, carbs, fats).
+- The JSON must be valid and properly formatted.
+
+The JSON must include these keys:
+
+1. calorieBreakdown — object with keys: calories, protein, carbs, fats.
+
+2. mealPlan — array of 7 objects (one per day). Each day object must have:
+   - day (string)
+   - breakfast, lunch, dinner, snacks — each is an object with:
+     - time (string)
+     - meal (string)
+     - calories (number)
+     - protein (number)
+     - carbs (number)
+     - fats (number)
+     - recipes (array of objects, each with:
+       - title (string)
+       - ingredients (array of strings, each showing food + macros like “1 cup oats (300 kcal, 10g protein, 55g carbs, 6g fat)”)
+       - steps (array of strings))
+
+3. workoutPlan — array of 7 objects, each with:
+   - day (string)
+   - exercises (array of objects, each with:
+     - name (string)
+     - calories (number)
+
+4. motivationalTip — string
+
+5. importantConsiderations — array of strings
+`;
+
+    // Call Gemini API
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
+    );
+
+    const geminiData = await geminiRes.json();
+
+    if (!geminiData?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return res
+        .status(500)
+        .json({ error: "Gemini API failed to return a plan" });
+    }
+
+    const planText = geminiData.candidates[0].content.parts[0].text;
+
+    // Check if a detail document already exists for this user
+    let existingDetail = await Detail.findOne({ user: req.user.id });
+    // Create new if not exists
+    if (!existingDetail) {
+      existingDetail = new Detail({ user: req.user.id });
+    }
+    existingDetail.mealFitness = planText;
+    const savedDetail = await existingDetail.save();
+    res.json(savedDetail);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 // ------------------- DailyMeals CRUD -------------------
 
