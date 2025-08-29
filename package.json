@@ -21,6 +21,7 @@
     "mongoose": "^8.17.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.5",
+    "openai": "^5.16.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "uniqid": "^5.4.0"
