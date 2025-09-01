@@ -84,43 +84,43 @@ router.get("/fetchfeast", fetchuser, async (req, res) => {
 // Goal: ${goal}
 // Daily Food Intake: ${foodpreferences}
 
-// Your response must be a SINGLE JSON object only (no extra text or markdown).  
+// Your response must be a SINGLE JSON object only (no extra text or markdown).
 
-// ⚠️ IMPORTANT RULES:  
-// - All 7 days (Monday → Sunday) must be completely filled with unique meals and workouts.  
-// - Do not leave ANY object or array empty.  
-// - Every meal must include: time, meal name, calories, protein, carbs, fats, and recipes (with title, ingredients including macros, and steps).  
+// ⚠️ IMPORTANT RULES:
+// - All 7 days (Monday → Sunday) must be completely filled with unique meals and workouts.
+// - Do not leave ANY object or array empty.
+// - Every meal must include: time, meal name, calories, protein, carbs, fats, and recipes (with title, ingredients including macros, and steps).
 // - **The calorie breakdown must be calculated correctly, and the sum of calories for breakfast, lunch, dinner, and snacks for each day MUST add up to the total daily calorie target.**
-// - Every workout day must include at least 3 exercises (with calories, protein, carbs, fats).  
-// - The JSON must be valid and properly formatted.  
+// - Every workout day must include at least 3 exercises (with calories, protein, carbs, fats).
+// - The JSON must be valid and properly formatted.
 
-// The JSON must include these keys:  
+// The JSON must include these keys:
 
-// 1. calorieBreakdown — object with keys: calories, protein, carbs, fats.  
+// 1. calorieBreakdown — object with keys: calories, protein, carbs, fats.
 
-// 2. mealPlan — array of 7 objects (one per day). Each day object must have:  
-//    - day (string)  
-//    - breakfast, lunch, dinner, snacks — each is an object with:  
-//      - time (string)  
-//      - meal (string)  
-//      - calories (number)  
-//      - protein (number)  
-//      - carbs (number)  
-//      - fats (number)  
-//      - recipes (array of objects, each with:  
-//        - title (string)  
-//        - ingredients (array of strings, each showing food + macros like “1 cup oats (300 kcal, 10g protein, 55g carbs, 6g fat)”)  
-//        - steps (array of strings))  
+// 2. mealPlan — array of 7 objects (one per day). Each day object must have:
+//    - day (string)
+//    - breakfast, lunch, dinner, snacks — each is an object with:
+//      - time (string)
+//      - meal (string)
+//      - calories (number)
+//      - protein (number)
+//      - carbs (number)
+//      - fats (number)
+//      - recipes (array of objects, each with:
+//        - title (string)
+//        - ingredients (array of strings, each showing food + macros like “1 cup oats (300 kcal, 10g protein, 55g carbs, 6g fat)”)
+//        - steps (array of strings))
 
-// 3. workoutPlan — array of 7 objects, each with:  
-//    - day (string)  
-//    - exercises (array of objects, each with:  
-//      - name (string)  
-//      - calories (number) 
+// 3. workoutPlan — array of 7 objects, each with:
+//    - day (string)
+//    - exercises (array of objects, each with:
+//      - name (string)
+//      - calories (number)
 
-// 4. motivationalTip — string  
+// 4. motivationalTip — string
 
-// 5. importantConsiderations — array of strings  
+// 5. importantConsiderations — array of strings
 // `;
 
 //     // Call OpenAI API
@@ -132,19 +132,17 @@ router.get("/fetchfeast", fetchuser, async (req, res) => {
 
 //     const planText = response.choices[0].message.content;
 
-//     // Check if a detail document already exists for this user
+// Check if a detail document already exists for this user
 //     let existingDetail = await Detail.findOne({ user: req.user.id });
-
+//     // Create new if not exists
 //     if (!existingDetail) {
 //       existingDetail = new Detail({ user: req.user.id });
 //     }
-
 //     existingDetail.mealFitness = planText;
 //     const savedDetail = await existingDetail.save();
-
 //     res.json(savedDetail);
 //   } catch (error) {
-//     console.error("Error in /addfeast:", error.message);
+//     console.error(error.message);
 //     res.status(500).send("Internal Server Error");
 //   }
 // });
@@ -155,7 +153,7 @@ router.get("/fetchfeast", fetchuser, async (req, res) => {
 router.post("/addfeast", fetchuser, async (req, res) => {
   try {
     const { age, weight, height, gender, goal, foodpreferences } = req.body;
-    console.log(age, weight, height, gender, goal, foodpreferences,"items")
+    console.log(age, weight, height, gender, goal, foodpreferences, "items");
     const prompt = `
 You are a certified fitness and nutrition coach. Create a personalized fitness and nutrition plan for the following person:
 
@@ -173,8 +171,21 @@ Your response must be a SINGLE JSON object only (no extra text or markdown).
 - Do not leave ANY object or array empty.
 - Every meal must include: time, meal name, calories, protein, carbs, fats, and recipes (with title, ingredients including macros, and steps).
 - **The calorie breakdown must be calculated correctly, and the sum of calories for breakfast, lunch, dinner, and snacks for each day MUST add up to the total daily calorie target.**
-- Every workout day must include at least 3 exercises (with calories, protein, carbs, fats).
+- Every workout day must include at least 3 exercises (with calories).
 - The JSON must be valid and properly formatted.
+
+CALCULATION RULES FOR WEIGHT CHANGE PROJECTION (MUST BE APPLIED):
+- Use 7700 kcal = 1 kg body weight (i.e., 7700 kcal deficit = ~1 kg lost; 7700 kcal surplus = ~1 kg gained).
+- Determine 'dailySurplusDeficit' = (dailyCaloriesProvidedByPlan - dailyCalorieMaintenanceEstimate).
+- If user did not provide an explicit daily calorie maintenance estimate, calculate maintenance using Mifflin-St Jeor (or a reasonable population average) and include the formula and resulting number inside the JSON under 'weightChangeProjection.assumptions'.
+  - Mifflin-St Jeor (for men): BMR = 10*kg + 6.25*cm - 5*age + 5
+  - Mifflin-St Jeor (for women): BMR = 10*kg + 6.25*cm - 5*age - 161
+  - Multiply BMR by an activity factor. If user's activity level isn't provided, assume "moderately active" (activity factor = 1.55) and state that assumption.
+- Raw estimate: estimatedDaysRaw = abs((targetWeight - currentWeight) * 7700 / dailySurplusDeficit) if targetWeight is implicit from ${goal} (e.g., "lose 5 kg") or compute for ±1 kg steps if target unspecified. If dailySurplusDeficit is 0, set estimatedDaysRaw = "infinite (no deficit/surplus)".
+- Safety-adjusted estimate: constrain the rate of weight change to safe ranges.
+  - For weight loss, safe rate = 0.25 to 1.0 kg/week (prefer mid-range 0.5 kg/week). For weight gain, safe rate = 0.25 to 0.75 kg/week.
+  - If raw calculation implies > 1.0 kg/week (loss) or >0.75 kg/week (gain) or <0.25 kg/week, provide an adjusted estimate by recalculating using a safe daily deficit/surplus corresponding to 0.5 kg/week (i.e., ~550 kcal/day deficit) for loss or 0.35 kg/week (~ 270 kcal/day surplus) for gain. Present both raw and adjusted estimates.
+- Always include units, rounding to one decimal place for kg and whole days for days, and provide the formulas used in assumptions.
 
 The JSON must include these keys:
 
@@ -198,11 +209,36 @@ The JSON must include these keys:
    - day (string)
    - exercises (array of objects, each with:
      - name (string)
-     - calories (number)
+     - calories (number))
 
 4. motivationalTip — string
 
 5. importantConsiderations — array of strings
+
+6. weightChangeProjection — object with the following required fields:
+   - currentWeight (number, kg)
+   - targetWeight (number, kg) — if ${goal} specifies an amount (e.g., "lose 5 kg") use it; otherwise set to null.
+   - dailyCalorieTarget (number, kcal) — the average daily calories from the mealPlan.
+   - dailyCalorieMaintenanceEstimate (number, kcal) — the maintenance calories used for calculations (show formula in assumptions).
+   - dailySurplusDeficit (number, kcal) — dailyCalorieTarget - dailyCalorieMaintenanceEstimate (positive for surplus, negative for deficit).
+   - estimatedDaysRaw (number|string) — the raw estimated days to reach the target (or "infinite" if no surplus/deficit). Round to nearest whole day.
+   - estimatedDaysAdjusted (number|string) — the safety-adjusted estimate (using safe weekly rates described above). Round to nearest whole day.
+   - weeklyRateKgRaw (number) — implied raw kg per week (signed; negative for loss). One decimal place.
+   - weeklyRateKgAdjusted (number) — safety adjusted kg per week (signed). One decimal place.
+   - assumptions (array of strings) — list the formulas, constants (7700 kcal/kg), activity factor used, any assumptions such as "assumed moderately active (1.55)" or clinical cautions.
+   - note (string) — short safety note if raw estimate exceeds safe ranges, otherwise empty string.
+
+ADDITIONAL JSON RULES:
+- The 'weightChangeProjection' values must be consistent with the mealPlan calorie totals (dailyCalorieTarget should be the average of the 7 day totals).
+- If the user's ${goal} is ambiguous (e.g., "tone" or "maintain weight"), output estimatedDaysRaw and estimatedDaysAdjusted for ±1 kg and state that targetWeight is null.
+- All numeric values must be numbers (not strings), except where the spec allows a string like "infinite".
+- Provide both raw math and the safety-adjusted result in the JSON (do not output any extra text outside the JSON).
+
+EXTRA:
+- If the raw dailySurplusDeficit is very large (>1500 kcal/day) or implies >2.0 kg/week, include a safety flag in 'weightChangeProjection.assumptions' recommending medical supervision.
+
+The JSON must be the only output — no commentary, no explanation, and no markdown. Ensure valid JSON.
+
 `;
 
     // Call Gemini API
