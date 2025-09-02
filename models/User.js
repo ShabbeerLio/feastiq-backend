@@ -152,7 +152,7 @@ const UserSchema = new Schema({
     // required: true,
   },
   weight: {
-    type: String,
+    type: Number,
     // required: true,
   },
   height: {
@@ -164,6 +164,12 @@ const UserSchema = new Schema({
   foodpreferences: {
     type: String,
   },
+  weightHistory: [
+    {
+      weight: { type: Number },
+      date: { type: Date, default: Date.now },
+    },
+  ],
   subscription: { type: SubscriptionSchema, default: {} },
   subscriptionHistory: [SubscriptionHistorySchema],
   invoices: [InvoiceSchema],

@@ -90,6 +90,9 @@ router.post(
         height: req.body.height,
         goal: req.body.goal,
         foodpreferences: req.body.foodpreferences,
+        weightHistory: [
+          { weight: req.body.weight, date: new Date() }, // first entry
+        ],
       });
 
       const data = {
@@ -108,6 +111,39 @@ router.post(
     }
   }
 );
+
+// Route 2: Add new weight
+router.post("/add-weight", fetchuser, async (req, res) => {
+  try {
+    const { weight } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Update current weight
+    user.weight = weight;
+
+    // ✅ Check if today already exists
+    const today = new Date().toISOString().split("T")[0];
+    const existing = user.weightHistory.find(
+      (entry) => entry.date.toISOString().split("T")[0] === today
+    );
+
+    if (existing) {
+      // update today's entry
+      existing.weight = weight;
+    } else {
+      // push new entry
+      user.weightHistory.push({ weight, date: new Date() });
+    }
+
+    await user.save();
+    res.json({ success: true, weightHistory: user.weightHistory });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 // Route 2 : Authentication a User using a POST "/api/auth/login" no login required
 router.post(
@@ -190,16 +226,8 @@ router.put(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const {
-      name,
-      email,
-      age,
-      gender,
-      weight,
-      height,
-      goal,
-      foodpreferences
-    } = req.body;
+    const { name, email, age, gender, weight, height, goal, foodpreferences } =
+      req.body;
     const updatedFields = {};
 
     // Add fields to be updated if provided
