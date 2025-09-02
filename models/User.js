@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
+const WeightHistorySchema = new mongoose.Schema({
+  weight: { type: Number, required: true },
+  date: { type: Date, default: Date.now },
+});
+
 // Invoice Schema
 const InvoiceSchema = new Schema({
   type: {
@@ -164,12 +169,7 @@ const UserSchema = new Schema({
   foodpreferences: {
     type: String,
   },
-  weightHistory: [
-    {
-      weight: { type: Number },
-      date: { type: Date, default: Date.now },
-    },
-  ],
+  weightHistory: [WeightHistorySchema],
   subscription: { type: SubscriptionSchema, default: {} },
   subscriptionHistory: [SubscriptionHistorySchema],
   invoices: [InvoiceSchema],

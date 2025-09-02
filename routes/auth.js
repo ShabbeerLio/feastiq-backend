@@ -112,36 +112,33 @@ router.post(
   }
 );
 
-// Route 2: Add new weight
-router.post("/add-weight", fetchuser, async (req, res) => {
+// Update weight & append history
+router.post("/update-weight", fetchuser, async (req, res) => {
   try {
     const { weight } = req.body;
-    const user = await User.findById(req.user.id);
+    const userId = req.user.id;
 
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    // Update current weight
-    user.weight = weight;
-
-    // ✅ Check if today already exists
-    const today = new Date().toISOString().split("T")[0];
-    const existing = user.weightHistory.find(
-      (entry) => entry.date.toISOString().split("T")[0] === today
-    );
-
-    if (existing) {
-      // update today's entry
-      existing.weight = weight;
-    } else {
-      // push new entry
-      user.weightHistory.push({ weight, date: new Date() });
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
+    // Update latest weight
+    user.weight = weight;
+
+    // Push new record in history
+    user.weightHistory.push({ weight });
+
     await user.save();
-    res.json({ success: true, weightHistory: user.weightHistory });
+
+    res.json({
+      success: true,
+      weight: user.weight,
+      weightHistory: user.weightHistory
+    });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).send("Internal Server Error");
+    console.error("Error updating weight:", error.message);
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
