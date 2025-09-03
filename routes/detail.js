@@ -293,10 +293,10 @@ router.get("/dailyMeals", fetchuser, async (req, res) => {
   }
 });
 
-// 2️⃣ POST - Add meal to dailyMeals (auto-merge if same date exists)
+// 2️⃣ POST - Add meals or workouts to dailyMeals
 router.post("/dailyMeals", fetchuser, async (req, res) => {
   try {
-    const { date, meals } = req.body;
+    const { date, meals = [], workouts = [] } = req.body;
 
     // normalize date (ignore time part)
     const mealDate = new Date(date).toISOString().split("T")[0];
@@ -310,43 +310,42 @@ router.post("/dailyMeals", fetchuser, async (req, res) => {
     );
 
     if (dailyMeal) {
-      // Append new meals into existing meals[]
+      // Append new meals & workouts
       dailyMeal.meals.push(...meals);
-
-      // ✅ Recalculate totals only from completed meals
-      dailyMeal.totals = dailyMeal.meals
-        .filter((m) => m.status === "completed")
-        .reduce(
-          (acc, m) => {
-            acc.calories += m.calories || 0;
-            acc.protein += m.protein || 0;
-            acc.fats += m.fats || 0;
-            acc.carbs += m.carbs || 0;
-            return acc;
-          },
-          { calories: 0, protein: 0, fats: 0, carbs: 0 }
-        );
+      dailyMeal.workouts.push(...workouts);
     } else {
-      // Calculate totals only for completed meals
-      const totals = meals
-        .filter((m) => m.status === "completed")
-        .reduce(
-          (acc, m) => {
-            acc.calories += m.calories || 0;
-            acc.protein += m.protein || 0;
-            acc.fats += m.fats || 0;
-            acc.carbs += m.carbs || 0;
-            return acc;
-          },
-          { calories: 0, protein: 0, fats: 0, carbs: 0 }
-        );
-
       detail.dailyMeals.push({
         date: new Date(date),
         meals,
-        totals,
+        workouts,
       });
+      dailyMeal = detail.dailyMeals[detail.dailyMeals.length - 1];
     }
+
+    // ✅ Recalculate totals only from completed meals
+    const totalsFromMeals = dailyMeal.meals
+      .filter((m) => m.status === "completed")
+      .reduce(
+        (acc, m) => {
+          acc.calories += m.calories || 0;
+          acc.protein += m.protein || 0;
+          acc.fats += m.fats || 0;
+          acc.carbs += m.carbs || 0;
+          return acc;
+        },
+        { calories: 0, protein: 0, fats: 0, carbs: 0 }
+      );
+
+    // ✅ Calculate burned calories from workouts
+    const totalBurned = dailyMeal.workouts
+      .filter((w) => w.status === "completed")
+      .reduce((sum, w) => sum + (w.caloriesBurned || 0), 0);
+
+    dailyMeal.totals = {
+      ...totalsFromMeals,
+      burned: totalBurned,
+      netCalories: totalsFromMeals.calories - totalBurned, // ✅ net
+    };
 
     await detail.save();
     res.json(detail.dailyMeals);
