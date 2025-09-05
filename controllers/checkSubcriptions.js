@@ -1,8 +1,6 @@
 // require("dotenv").config();
 const cron = require("node-cron");
 const User = require("../models/User");
-const connectToMongo = require("../db");
-connectToMongo();
 
 const checkSubscriptions = async () => {
   try {
@@ -55,14 +53,10 @@ const checkSubscriptions = async () => {
     return;
   }
 };
-
-(async () => {
-  await Promise.all([checkSubscriptions()]);
-  process.exit(0);
-})();
-
 // ⏰ Schedule task to run at **12:00 AM (midnight) every day**
 cron.schedule("0 0 * * *", () => {
   console.log("Running fetchMonthlyPanchang at midnight...");
   checkSubscriptions();
 });
+
+module.exports = {};
