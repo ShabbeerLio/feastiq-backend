@@ -1,7 +1,14 @@
 const Coupon = require("../models/Coupon");
 const User = require("../models/User");
 
-// Assign Subscription with Optional Coupon
+// Duration mapping
+const planDurations = {
+  weekly: 7,
+  monthly: 30,
+  quarterly: 90,
+  yearly: 365,
+};
+
 exports.assignSubscription = async (req, res) => {
   try {
     const { plan, paymentMethod, transactionId, couponCode } = req.body;
@@ -15,22 +22,27 @@ exports.assignSubscription = async (req, res) => {
     if (couponCode) {
       const couponDoc = await Coupon.findOne({
         code: couponCode.toUpperCase(),
-        // used: false,
+        type: "subscription", // ensure coupon is for subscription
+        status: "enable",
       });
 
       if (!couponDoc) {
-        return res.status(400).json({ error: "Invalid or used coupon code" });
+        return res.status(400).json({ error: "Invalid or disabled coupon code" });
       }
 
       coupon = {
         code: couponDoc.code,
         discount: couponDoc.discount,
-        // used: true,
       };
     }
 
+    // validate plan
+    if (!planDurations[plan.toLowerCase()]) {
+      return res.status(400).json({ error: "Invalid subscription plan" });
+    }
+
     const today = new Date();
-    let startDate = new Date(today); // default to today
+    let startDate = new Date(today);
 
     if (user.subscriptionHistory.length > 0) {
       const lastHistory =
@@ -39,21 +51,15 @@ exports.assignSubscription = async (req, res) => {
       if (lastHistory.endDate) {
         const lastEndDate = new Date(lastHistory.endDate);
         if (today <= lastEndDate) {
-          // If last endDate >= today, start next day
           lastEndDate.setDate(lastEndDate.getDate() + 1);
           startDate = lastEndDate;
         }
-        // Else, startDate remains today (gap period handled automatically)
       }
     }
 
-    // Determine endDate
+    // Determine endDate based on plan
     let endDate = new Date(startDate);
-    if (plan === "Free") {
-      endDate.setDate(startDate.getDate() + 1);
-    } else {
-      endDate.setDate(startDate.getDate() + 30);
-    }
+    endDate.setDate(startDate.getDate() + planDurations[plan.toLowerCase()]);
 
     // Assign subscription
     user.subscription = {
@@ -105,7 +111,7 @@ exports.checkSubscription = async (req, res) => {
   }
 };
 
-// Unsubscribe (Cancel Subscription)
+// Unsubscribe
 exports.unsubscribe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -115,7 +121,6 @@ exports.unsubscribe = async (req, res) => {
 
     user.subscription.status = "Cancelled";
 
-    // Save to history
     user.subscriptionHistory.push({
       plan: user.subscription.plan,
       startDate: user.subscription.startDate,

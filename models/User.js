@@ -83,7 +83,7 @@ const CouponSchema = new Schema({
 const SubscriptionSchema = new Schema({
   plan: {
     type: String,
-    enum: ["Free", "Basic", "Premium", "Enterprise"],
+    enum: ["weekly", "monthly", "quarterly", "yearly"],
     default: "Free",
   },
   startDate: {

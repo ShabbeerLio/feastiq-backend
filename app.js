@@ -23,6 +23,9 @@ app.use(passport.initialize());
 // Available routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/detail", require("./routes/detail"));
+app.use('/api/coupons', require('./routes/CouponDetails'));
+app.use("/api/subscription", require("./routes/subscription"));
+app.use("/api/checksubscription", require("./routes/subscriptionAlert"));
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello MERN Stack! " });
