@@ -11,8 +11,10 @@ const AdminNoticeSchema = new mongoose.Schema({
 
 const planSchema = new mongoose.Schema({
   plan: { type: String },
+  description: { type: String },
   price: { type: String },
   slprice: { type: String },
+  tag: { type: String },
 });
 
 const AdminDetailSchema = new Schema({
