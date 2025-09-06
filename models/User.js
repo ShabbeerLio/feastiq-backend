@@ -19,6 +19,11 @@ const InvoiceSchema = new Schema({
     required: true,
     unique: true,
   },
+  transactionId: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   price: {
     type: String,
     required: true,
@@ -83,7 +88,7 @@ const CouponSchema = new Schema({
 const SubscriptionSchema = new Schema({
   plan: {
     type: String,
-    enum: ["weekly", "monthly", "quarterly", "yearly"],
+    enum: ["Free","weekly", "monthly", "quarterly", "yearly"],
     default: "Free",
   },
   startDate: {
