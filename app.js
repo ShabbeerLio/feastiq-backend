@@ -29,6 +29,7 @@ app.use("/api/checksubscription", require("./routes/subscriptionAlert"));
 app.use("/api/plan", require("./routes/Plans"));
 app.use("/api/admindetail", require("./routes/adminDetail"));
 app.use("/api/invoice", require("./routes/invoiceDetail"));
+app.use("/api/query", require("./routes/queryRequest"));
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello MERN Stack! " });
