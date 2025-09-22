@@ -6,7 +6,6 @@ const {
   unsubscribe,
 } = require("../controllers/subscriptionControllers");
 const User = require("../models/User");
-const sendPushNotification = require("../utils/sendPushNotification");
 var fetchuser = require("../middleware/fetchUser");
 
 // const startSubscriptionCron = require("../controllers/checkSubcriptions");
@@ -39,14 +38,14 @@ router.get("/check-expiry", async (req, res) => {
           );
         }
 
-        if (diffDays <= 3 && user.pushToken) { // notify 3 days before expiry
-          await sendPushNotification(
-            user.pushToken,
-            "Subscription Expiring Soon",
-            `Hi ${user.name}, your ${user.subscription.plan} subscription expires in ${diffDays} day(s).`,
-            { link: "https://feastiq.online/account" }
-          );
-        }
+        // if (diffDays <= 3 && user.pushToken) { // notify 3 days before expiry
+        //   await sendPushNotification(
+        //     user.pushToken,
+        //     "Subscription Expiring Soon",
+        //     `Hi ${user.name}, your ${user.subscription.plan} subscription expires in ${diffDays} day(s).`,
+        //     { link: "https://feastiq.online/account" }
+        //   );
+        // }
       }
     }
 
