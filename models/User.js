@@ -88,7 +88,7 @@ const CouponSchema = new Schema({
 const SubscriptionSchema = new Schema({
   plan: {
     type: String,
-    enum: ["Free","Weekly", "Monthly", "Quarterly", "Yearly"],
+    enum: ["Free", "Weekly", "Monthly", "Quarterly", "Yearly"],
     default: "Free",
   },
   startDate: {
@@ -182,6 +182,7 @@ const UserSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  pushToken: String,
 });
 
 UserSchema.pre("save", function (next) {

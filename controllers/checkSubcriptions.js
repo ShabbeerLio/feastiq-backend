@@ -1,5 +1,6 @@
-// require("dotenv").config();
+require("dotenv").config();
 const cron = require("node-cron");
+const connectDB = require("../db");
 const User = require("../models/User");
 
 const checkSubscriptions = async () => {
@@ -13,13 +14,14 @@ const checkSubscriptions = async () => {
       ],
     });
 
+    console.log(users.length, "users found");
+
     const today = new Date();
 
     for (let user of users) {
       let modified = false;
 
-      /** Check current active subscription */
-      if (user.subscription.endDate && today > user.subscription.endDate) {
+      if (user.subscription?.endDate && today > user.subscription.endDate) {
         if (user.subscription.status !== "Expired") {
           user.subscription.status = "Expired";
           modified = true;
@@ -27,36 +29,34 @@ const checkSubscriptions = async () => {
         }
       }
 
-      /** Check ALL entries in subscriptionHistory */
       user.subscriptionHistory.forEach((history) => {
         if (history.endDate && today > history.endDate) {
           if (history.status !== "Expired") {
             history.status = "Expired";
             modified = true;
-            console.log(
-              `Updated history subscription to expired for: ${user.email}`
-            );
+            console.log(`Updated history subscription for: ${user.email}`);
           }
         }
       });
 
-      /** Save only if something changed */
       if (modified) {
         await user.save();
       }
     }
 
     console.log("Subscription check completed.");
-    return;
   } catch (err) {
     console.error("Error checking subscriptions:", err);
-    return;
   }
 };
-// ⏰ Schedule task to run at **12:00 AM (midnight) every day**
-cron.schedule("0 0 * * *", () => {
-  console.log("Running fetchMonthlyPanchang at midnight...");
-  checkSubscriptions();
+
+// 🔗 Connect DB before running anything
+connectDB().then(() => {
+  // Schedule cron job
+  cron.schedule("0 0 * * *", () => {
+    console.log("⏰ Running subscription check at midnight...");
+    checkSubscriptions();
+  });
 });
 
 module.exports = {};

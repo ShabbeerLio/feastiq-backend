@@ -149,13 +149,13 @@ router.get("/fetchfeast", fetchuser, async (req, res) => {
 
 // gemini API key
 
-// route2 : Add new category using POST: "/api/detail/adddetail" login required
+// route2 : Add new category using POST: "/api/detail/addfeast" login required
 router.post("/addfeast", fetchuser, async (req, res) => {
   try {
     const { age, weight, height, gender, goal, foodpreferences } = req.body;
     console.log(age, weight, height, gender, goal, foodpreferences, "items");
     const prompt = `
-You are a certified fitness and nutrition coach. Create a personalized fitness and nutrition plan for the following person:
+You are an Indian certified fitness and nutrition coach. Create a personalized fitness and nutrition plan for the following person:
 
 Age: ${age}
 Gender: ${gender}
@@ -262,6 +262,7 @@ The JSON must be the only output — no commentary, no explanation, and no markd
     }
 
     const planText = geminiData.candidates[0].content.parts[0].text;
+    const cleaned = planText?.replace(/```json|```/g, "").trim();
 
     // Check if a detail document already exists for this user
     let existingDetail = await Detail.findOne({ user: req.user.id });
@@ -269,12 +270,120 @@ The JSON must be the only output — no commentary, no explanation, and no markd
     if (!existingDetail) {
       existingDetail = new Detail({ user: req.user.id });
     }
-    existingDetail.mealFitness = planText;
+    console.log(cleaned, "cleaned");
+    existingDetail.mealFitness = JSON.parse(cleaned);
     const savedDetail = await existingDetail.save();
     res.json(savedDetail);
   } catch (error) {
     console.error(error.message);
     res.status(500).send("Internal Server Error");
+  }
+});
+
+// ---------------get meals swap
+router.post("/editMeal", async (req, res) => {
+  try {
+    const { detailId, day, mealType } = req.body;
+
+    // find document
+    const detail = await Detail.findById(detailId);
+    if (!detail) return res.status(404).json({ error: "Detail not found" });
+
+    // get existing meal
+    const currentMeal = detail.mealFitness.mealPlan.find(
+      (d) => d.day === day
+    )?.[mealType];
+    if (!currentMeal) return res.status(400).json({ error: "Meal not found" });
+
+    // prompt AI for 3 alternatives
+    const prompt = `
+    Suggest 3 alternative ${mealType} meals for a ${detail.dietaryPreference} diet.
+    Each must include:
+    - name of meal
+    - calories, protein, carbs, fats
+    - 1 recipe (ingredients + steps)
+    Keep calories within ±10% of ${currentMeal.calories}.
+    Return as JSON array like:
+    [
+      {
+    "time": "HH:MM AM/PM",
+        "meal": "X",
+        "calories": 400,
+        "protein": 20,
+        "carbs": 50,
+        "fats": 10,
+        "recipes": [
+          {
+            "title": "X",
+            "ingredients": ["..."],
+            "steps": ["..."]
+          }
+        ]
+      }
+    ]
+    `;
+
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
+    );
+
+    const geminiData = await geminiRes.json();
+    const planText = geminiData.candidates[0].content.parts[0].text;
+    const cleaned = planText?.replace(/```json|```/g, "").trim();
+
+    // console.log(cleaned, "cleaned");
+    // try to extract JSON array/object only
+    // try to extract JSON array only
+    const match = cleaned.match(/\[[\s\S]*\]/);
+    if (!match) {
+      return res
+        .status(500)
+        .json({ error: "No JSON array found", raw: cleaned });
+    }
+
+    let suggestions;
+    try {
+      suggestions = JSON.parse(match[0]); // only parse the [ ... ]
+    } catch (err) {
+      console.error("JSON parse failed:", err);
+      return res.status(500).json({ error: "Invalid JSON", raw: match[0] });
+    }
+    // return alternatives without updating yet
+    res.json({ currentMeal, suggestions });
+  } catch (err) {
+    // console.log(err, "error");
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ------------apply meal
+router.post("/applyMealEdit", async (req, res) => {
+  try {
+    const { detailId, day, mealType, newMeal } = req.body;
+
+    const detail = await Detail.findById(detailId);
+    if (!detail) return res.status(404).json({ error: "Detail not found" });
+
+    // update meal
+    const mealDay = detail.mealFitness.mealPlan.find((d) => d.day === day);
+    if (!mealDay) return res.status(400).json({ error: "Day not found" });
+
+    mealDay[mealType] = newMeal;
+    detail.markModified("mealFitness.mealPlan");
+    await detail.save();
+
+    res.json({ success: true, updatedMeal: mealDay[mealType] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
