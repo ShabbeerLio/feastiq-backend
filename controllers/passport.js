@@ -9,7 +9,7 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL:
         process.env.NODE_ENV === "production"
-          ? "https://feastiq-backend1.onrender.com/api/auth/google/callback"
+          ? "https://api.feastiq.online/api/auth/google/callback"
           : "http://localhost:8000/api/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, done) => {
